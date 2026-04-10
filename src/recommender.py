@@ -1,6 +1,8 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
+from src.rule_engine import filter_by_level, filter_by_duration, filter_by_language
 from sklearn.metrics.pairwise import cosine_similarity
+from src.ranking import compute_final_score
 import difflib
 
 
@@ -107,10 +109,10 @@ def recommend_smart(df, cosine_sim, course_title, top_n=5):
         row = df.iloc[i]
 
         if input_level <= row["level_num"] <= input_level + 1:
-            final_score = (
-                0.5 * sim_score +
-                0.3 * row["career_relevance_score"] +
-                0.2 * row["skill_level_score"]
+            final_score = compute_final_score(
+                sim_score,
+                row["career_relevance_score"],
+                row["skill_level_score"]
             )
 
             results.append({
@@ -148,15 +150,11 @@ def recommend_for_user(df, user_profile, top_n=5):
     ]
 
     # Filter by duration
-    filtered_df = filtered_df[
-        filtered_df["duration_category"] == user_profile["preferred_duration"]
-    ]
+    filtered_df = filter_by_level(filtered_df, user_level)
+    filtered_df = filter_by_duration(filtered_df, user_profile["preferred_duration"])
 
-    # Language filter
     if "language" in user_profile:
-        filtered_df = filtered_df[
-            filtered_df["language"] == user_profile["language"].lower()
-        ]
+        filtered_df = filter_by_language(filtered_df, user_profile["language"])
 
     # Goal match
     def goal_match(tags):
