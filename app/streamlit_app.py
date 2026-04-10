@@ -24,11 +24,33 @@ def load_pipeline():
 df, cosine_sim = load_pipeline()
 
 # -------------------------------
-# 🔹 UI Layout
+# 🔹 UI Header
 # -------------------------------
-st.title("🚀 PathPilot AI")
-st.subheader("Your AI-Powered Study & Career Assistant")
+st.markdown("""
+# PathPilot AI  
+### Your AI-Powered Study & Career Assistant
+""")
 
+st.divider()
+
+# -------------------------------
+# 🔹 Sidebar Filters
+# -------------------------------
+st.sidebar.header("⚙️ Filters")
+
+selected_level = st.sidebar.selectbox(
+    "Filter by Level",
+    ["All", "beginner", "intermediate", "advanced"]
+)
+
+selected_duration = st.sidebar.selectbox(
+    "Filter by Duration",
+    ["All", "short", "medium", "long"]
+)
+
+# -------------------------------
+# 🔹 Recommendation Type
+# -------------------------------
 option = st.sidebar.selectbox(
     "Choose Recommendation Type",
     [
@@ -39,20 +61,50 @@ option = st.sidebar.selectbox(
 )
 
 # -------------------------------
+# 🔹 Helper: Display Cards
+# -------------------------------
+def show_course_cards(results):
+    if results is None or len(results) == 0:
+        st.warning("No recommendations found. Try different input.")
+        return
+
+    st.write(f"🎯 Showing {len(results)} recommendations")
+
+    for _, row in results.iterrows():
+        st.markdown(f"""
+        ### 🎓 {row['course_title']}
+        📘 **Subject:** {row['subject']}  
+        📊 **Level:** {row['level']}  
+        🧠 **Path:** {row['learning_path']}  
+        ⭐ **Score:** {round(row.get('final_score', 0), 3)}
+        ---
+        """)
+
+# -------------------------------
 # 🔍 1. Course Similarity
 # -------------------------------
 if option == "Course Similarity":
     st.header("🔍 Find Similar Courses")
 
-    course_input = st.text_input("Enter Course Name")
+    course_list = df["course_title"].tolist()
+
+    selected_course = st.selectbox(
+        "Search or Select Course",
+        course_list
+    )
 
     if st.button("Recommend"):
-        results = recommend_courses(df, cosine_sim, course_input)
+        with st.spinner("Finding similar courses..."):
+            results = recommend_courses(df, cosine_sim, selected_course)
 
-        if isinstance(results, str):
-            st.error(results)
-        else:
-            st.dataframe(results)
+            if isinstance(results, str):
+                st.error(results)
+            else:
+                # Apply filters
+                if selected_level != "All":
+                    results = results[results["level"] == selected_level]
+
+                show_course_cards(results)
 
 
 # -------------------------------
@@ -61,15 +113,25 @@ if option == "Course Similarity":
 elif option == "Smart Recommendation":
     st.header("🧠 Career-Aware Recommendations")
 
-    course_input = st.text_input("Enter Course Name")
+    course_list = df["course_title"].tolist()
+
+    selected_course = st.selectbox(
+        "Search or Select Course",
+        course_list
+    )
 
     if st.button("Get Smart Recommendations"):
-        results = recommend_smart(df, cosine_sim, course_input)
+        with st.spinner("Generating smart recommendations..."):
+            results = recommend_smart(df, cosine_sim, selected_course)
 
-        if isinstance(results, str):
-            st.error(results)
-        else:
-            st.dataframe(results)
+            if isinstance(results, str):
+                st.error(results)
+            else:
+                # Apply filters
+                if selected_level != "All":
+                    results = results[results["level"] == selected_level]
+
+                show_course_cards(results)
 
 
 # -------------------------------
@@ -106,9 +168,17 @@ elif option == "Personalized Recommendation":
     }
 
     if st.button("Get Personalized Recommendations"):
-        results = recommend_for_user(df, user_profile)
+        with st.spinner("Personalizing your learning path..."):
+            results = recommend_for_user(df, user_profile)
 
-        if isinstance(results, str):
-            st.error(results)
-        else:
-            st.dataframe(results)
+            if isinstance(results, str):
+                st.error(results)
+            else:
+                # Apply filters
+                if selected_level != "All":
+                    results = results[results["level"] == selected_level]
+
+                if selected_duration != "All":
+                    results = results[results["duration_category"] == selected_duration]
+
+                show_course_cards(results)
