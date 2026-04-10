@@ -178,4 +178,4 @@ def recommend_for_user(df, user_profile, top_n=5):
         "level",
         "learning_path",
         "final_score"
-    ]].head(top_n)
+    ]].head(top_n)  
